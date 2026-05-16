@@ -195,6 +195,16 @@ body{
     text-decoration: underline;
     cursor: pointer;
 }
+
+th.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+th.sortable-header:hover {
+    background-color: #212529 !important;
+    color: #c39200 !important;
+}
 </style>
 </head>
 
@@ -206,17 +216,17 @@ body{
     <div class="login-logo-container">
         <img src="logo.png" alt="Logo SK Krangan" class="login-school-logo-img">
         <h4>SK KRANGAN SERIAN</h4>
-        <div class="login-system-label">Sistem Inventory Digital SK Krangan</div>
+        <div class="login-system-label">Sistem Inventory Digital</div>
     </div>
 
     <div class="mb-3">
         <label class="form-label fw-semibold text-secondary">Username</label>
-        <input type="text" id="username" class="form-control" placeholder="Masukkan username">
+        <input type="text" id="username" class="form-control" placeholder="Username">
     </div>
 
     <div class="mb-3">
         <label class="form-label fw-semibold text-secondary">Password</label>
-        <input type="password" id="password" class="form-control" placeholder="Masukkan password">
+        <input type="password" id="password" class="form-control" placeholder="Password">
     </div>
 
     <div class="mb-3">
@@ -259,7 +269,7 @@ body{
 <div class="dashboard-header mb-4">
     <img src="logo.png" alt="Logo SK Krangan" class="dashboard-logo-img">
     <div class="school-title-box">
-        <h4>SEKOLAH KEBANGSAAN KRANGAN SERIAN</h4>
+        <h4>SEKOLAH KEBANGSAAN KRANGAN, SERIAN</h4>
         <p><i class="fa-solid fa-location-dot text-danger"></i> Pejabat Pendidikan Daerah Serian, 94700 Serian, Sarawak</p>
     </div>
 </div>
@@ -315,15 +325,18 @@ body{
 
 <div id="senaraiSection" class="hidden">
 <div class="table-box">
-<h5>Senarai Aset</h5>
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h5>Senarai Aset</h5>
+    <small class="text-muted"><i class="fa-solid fa-circle-info"></i> Klik pada tajuk pengepala untuk menyusun data.</small>
+</div>
 <table class="table table-bordered table-hover">
 <thead class="table-dark">
 <tr>
-<th>Tag</th>
-<th>Nama</th>
-<th>Kategori</th>
-<th>Harga</th>
-<th>Status</th>
+<th onclick="isihAset('tag')" class="sortable-header">Tag <i class="fa-solid fa-sort fa-xs ms-1"></i></th>
+<th onclick="isihAset('nama')" class="sortable-header">Nama <i class="fa-solid fa-sort fa-xs ms-1"></i></th>
+<th onclick="isihAset('kategori')" class="sortable-header">Kategori <i class="fa-solid fa-sort fa-xs ms-1"></i></th>
+<th onclick="isihAset('harga')" class="sortable-header">Harga <i class="fa-solid fa-sort fa-xs ms-1"></i></th>
+<th onclick="isihAset('status')" class="sortable-header">Status <i class="fa-solid fa-sort fa-xs ms-1"></i></th>
 <th>Tindakan</th>
 </tr>
 </thead>
@@ -361,6 +374,7 @@ body{
 </div>
 </div>
 
+<!-- Modal Detail -->
 <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -389,6 +403,7 @@ body{
   </div>
 </div>
 
+<!-- Modal PDF -->
 <div class="modal fade" id="pdfModal" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -416,24 +431,56 @@ body{
   </div>
 </div>
 
+<!-- Modal Pengesahan Tindakan (Baru) -->
+<div class="modal fade" id="confirmActionModal" tabindex="-1" aria-labelledby="confirmActionModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="confirmActionModalLabel"><i class="fa-solid fa-shield-halved"></i> Pengesahan Keselamatan Tindakan</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessageText" class="fw-semibold text-dark mb-3"></p>
+        <div class="mb-3">
+            <label class="form-label small fw-bold text-secondary">Sila Masukkan Password Anda Untuk Mengesahkan:</label>
+            <input type="password" id="confirmPasswordInput" class="form-control" placeholder="Password Akaun USERS Anda">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" id="btnConfirmSubmit" class="btn btn-danger fw-bold" onclick="hantarPengesahanStatus()">Sahkan Tindakan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// Masukkan URL Google Apps Script Web App anda di bawah ini
-const API_URL = "https://script.google.com/macros/s/AKfycbxTWSbLtRCQzAICP_LRBZQYo_NdDHBz6nmSldIkaKzqyyqm2FtBST4kaVEvPy7hmUEj/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxcfi4foRbc932hZ5Jo5QSXFDLVhT1IiOvGdlHX5P1n_ZF1zdQPlimUlWigDn17RqHi/exec";
 
 let assets = [];
 let auditLogs = [];
 let filteredAuditLogs = [];
 let runningNo = 1;
 let currentUser = "";
+let currentUsernameRaw = ""; // Menyimpan username asal dari kotak log masuk
 let currentRole = "";
 let assetChart = null;
 let bModal = null; 
 let pModal = null;
+let cModal = null; // Modal pengesahan tindakan baru
+
+// Pengisihan turus jadual
+let susunanArah = true; 
+let turusSemasa = "";
+
+// Menyimpan data sedia ada tindakan sementara
+let tempActionIndex = null;
+let tempActionStatus = null;
 
 /* =========================================
-1. PROSES LOG MASUK (Telah Dibaiki)
+1. PROSES LOG MASUK
 ========================================= */
 async function login(){
     let usernameInput = document.getElementById('username').value.trim();
@@ -450,7 +497,6 @@ async function login(){
         btn.disabled = true;
         btn.innerHTML = "<span class='spinner-border spinner-border-sm'></span> Menyemak...";
 
-        // Menggunakan kaedah FETCH POST standard yang disokong penuh oleh protokol file:///
         let response = await fetch(API_URL, {
             method: "POST",
             mode: "cors", 
@@ -467,6 +513,7 @@ async function login(){
 
         if(resData && resData.status === "success") {
             currentUser = resData.name || usernameInput;
+            currentUsernameRaw = usernameInput; // Simpan untuk semakan re-auth nanti
             currentRole = roleInput;
 
             document.getElementById('loginPage').style.display = "none";
@@ -479,6 +526,7 @@ async function login(){
 
             bModal = new bootstrap.Modal(document.getElementById('detailModal'));
             pModal = new bootstrap.Modal(document.getElementById('pdfModal'));
+            cModal = new bootstrap.Modal(document.getElementById('confirmActionModal'));
 
             initChart();
             await loadAssets();
@@ -612,14 +660,14 @@ function renderAssets(){
 
         if(currentRole === "guru_besar") {
             if(asset.status === "Pending Approval") {
-                actionButton = `<button class="btn btn-success btn-sm me-1" onclick="tukarStatus(${index}, 'Approved')">Approve</button>`;
+                actionButton = `<button class="btn btn-success btn-sm me-1" onclick="panggilModalSahkan(${index}, 'Approved')">Approve</button>`;
             } else if(asset.status === "Pending Disposal") {
-                actionButton = `<button class="btn btn-dark btn-sm" onclick="tukarStatus(${index}, 'Disposed')">Sahkan Lupus</button>`;
+                actionButton = `<button class="btn btn-dark btn-sm" onclick="panggilModalSahkan(${index}, 'Disposed')">Sahkan Lupus</button>`;
             }
         } 
         else if(currentRole === "pegawai") {
             if(asset.status === "Approved") {
-                actionButton = `<button class="btn btn-danger btn-sm" onclick="tukarStatus(${index}, 'Pending Disposal')">Mohon Lupus</button>`;
+                actionButton = `<button class="btn btn-danger btn-sm" onclick="panggilModalSahkan(${index}, 'Pending Disposal')">Mohon Lupus</button>`;
             }
         }
 
@@ -633,6 +681,36 @@ function renderAssets(){
         </tr>`;
     });
     document.getElementById('assetTable').innerHTML = html;
+}
+
+/* =========================================
+3A. FUNGSI ISIH/SORTING DATA JADUAL ASET
+========================================= */
+function isihAset(turus) {
+    if (turusSemasa === turus) {
+        susunanArah = !susunanArah;
+    } else {
+        turusSemasa = turus;
+        susunanArah = true;
+    }
+
+    assets.sort((a, b) => {
+        let nilaiA = a[turus];
+        let nilaiB = b[turus];
+
+        if (turus === 'harga') {
+            return susunanArah ? nilaiA - nilaiB : nilaiB - nilaiA;
+        }
+
+        nilaiA = String(nilaiA).toLowerCase();
+        nilaiB = String(nilaiB).toLowerCase();
+
+        if (nilaiA < nilaiB) return susunanArah ? -1 : 1;
+        if (nilaiA > nilaiB) return susunanArah ? 1 : -1;
+        return 0;
+    });
+
+    renderAssets();
 }
 
 function paparDetail(index) {
@@ -650,24 +728,83 @@ function paparDetail(index) {
     if(bModal) bModal.show();
 }
 
-async function tukarStatus(index, statusBaru){
+/* =========================================
+3B. PROSES RE-AUTHENTICATION & CONFIRMATION
+========================================= */
+function panggilModalSahkan(index, statusBaru) {
     let targetAsset = assets[index];
-    if(statusBaru === 'Pending Disposal' && !confirm(`Pasti memohon pelupusan ${targetAsset.tag}?`)) return;
-    if(statusBaru === 'Disposed' && !confirm(`Pasti meluluskan pelupusan kekal ${targetAsset.tag}?`)) return;
+    tempActionIndex = index;
+    tempActionStatus = statusBaru;
+
+    let mesejTindakan = "";
+    if(statusBaru === "Approved") {
+        mesejTindakan = `Anda akan MELULUSKAN (Approve) kemasukan aset baharu [${targetAsset.tag} - ${targetAsset.nama}].`;
+    } else if(statusBaru === "Pending Disposal") {
+        mesejTindakan = `Anda akan MEMOHON PELUPUSAN bagi aset [${targetAsset.tag} - ${targetAsset.nama}].`;
+    } else if(statusBaru === "Disposed") {
+        mesejTindakan = `Anda akan MENGESAHKAN PELUPUSAN KEKAL bagi aset [${targetAsset.tag} - ${targetAsset.nama}].`;
+    }
+
+    document.getElementById('confirmMessageText').innerText = mesejTindakan;
+    document.getElementById('confirmPasswordInput').value = ""; // Reset box password lama
+    if(cModal) cModal.show();
+}
+
+async function hantarPengesahanStatus() {
+    let pwdInput = document.getElementById('confirmPasswordInput').value.trim();
+    let btn = document.getElementById('btnConfirmSubmit');
+    let targetAsset = assets[tempActionIndex];
+
+    if(!pwdInput) {
+        alert("Sila masukkan password anda untuk pengesahan.");
+        return;
+    }
 
     try {
-        await fetch(API_URL, {
+        btn.disabled = true;
+        btn.innerHTML = "<span class='spinner-border spinner-border-sm'></span> Memproses...";
+
+        // Hubungi Apps Script untuk sahkan semula password menerusi action "verifyUser"
+        let verifyResponse = await fetch(API_URL, {
             method: 'POST',
             mode: 'cors',
             headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify({ action: "updateStatus", tag: targetAsset.tag, status: statusBaru })
+            body: JSON.stringify({
+                action: "verifyUser",
+                username: currentUsernameRaw,
+                password: pwdInput,
+                role: currentRole
+            })
         });
 
-        addAudit(`Menukar status aset ${targetAsset.tag} kepada ${statusBaru}`);
-        alert(`Status kemaskini berjaya.`);
-        setTimeout(async () => { await loadAssets(); }, 1500);
-    } catch (error) {
-        alert("Gagal mengemaskini status.");
+        let verifyResult = await verifyResponse.json();
+
+        if(verifyResult && verifyResult.status === "success") {
+            // Jika password betul, laksanakan pertukaran status
+            let updateResponse = await fetch(API_URL, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({ 
+                    action: "updateStatus", 
+                    tag: targetAsset.tag, 
+                    status: tempActionStatus 
+                })
+            });
+
+            addAudit(`Menukar status aset ${targetAsset.tag} kepada ${tempActionStatus} (Tindakan disahkan dengan kata laluan)`);
+            alert(`Kemaskini status berjaya dilaksanakan.`);
+            
+            if(cModal) cModal.hide();
+            setTimeout(async () => { await loadAssets(); }, 500);
+        } else {
+            alert(verifyResult.message || "Sahan keselamatan gagal. Password yang dimasukkan adalah salah.");
+        }
+    } catch(error) {
+        alert("Ralat memproses verifikasi kata laluan.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = "Sahkan Tindakan";
     }
 }
 
